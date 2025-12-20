@@ -1,10 +1,11 @@
 "use client";
 
-import { use, useEffect, useState, useRef, useCallback } from "react";
+import { use, useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getPdfPages, setPdfPages } from "@/lib/cache";
 import { useFiles } from "@/lib/files-context";
+import { CELEBRITY_DATA } from "@/lib/celebrity-data";
 
 const WORKER_URL = process.env.NODE_ENV === "development" 
   ? "http://localhost:8787" 
@@ -66,6 +67,68 @@ function getFileId(key: string): string {
   return match ? match[0] : key;
 }
 
+// Get celebrities for a specific file and page
+function getCelebritiesForPage(filePath: string, pageNumber: number): { name: string; confidence: number }[] {
+  const celebrities: { name: string; confidence: number }[] = [];
+  
+  for (const celebrity of CELEBRITY_DATA) {
+    for (const appearance of celebrity.appearances) {
+      // The appearance.file contains paths like "VOL00002/IMAGES/0001/EFTA00003324.pdf"
+      // filePath also should be in similar format
+      if (appearance.file === filePath && appearance.page === pageNumber) {
+        celebrities.push({
+          name: celebrity.name,
+          confidence: appearance.confidence
+        });
+      }
+    }
+  }
+  
+  // Sort by confidence (highest first)
+  return celebrities.sort((a, b) => b.confidence - a.confidence);
+}
+
+// Component to display a page with its celebrity info
+function PageWithCelebrities({ 
+  dataUrl, 
+  pageNumber, 
+  filePath 
+}: { 
+  dataUrl: string; 
+  pageNumber: number; 
+  filePath: string;
+}) {
+  const celebrities = useMemo(() => getCelebritiesForPage(filePath, pageNumber), [filePath, pageNumber]);
+  
+  return (
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={dataUrl}
+        alt={`Page ${pageNumber}`}
+        className="w-full h-auto md:max-h-[70vh] md:w-auto md:mx-auto"
+        style={{ maxWidth: "100%" }}
+      />
+      {celebrities.length > 0 && (
+        <div className="bg-zinc-900 border-t border-zinc-700 px-4 py-3">
+          <p className="text-sm text-zinc-400 mb-2">In this photo:</p>
+          <div className="flex flex-wrap gap-2">
+            {celebrities.map((celeb, idx) => (
+              <Link
+                key={idx}
+                href={`/?celebrity=${encodeURIComponent(celeb.name)}`}
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition-colors"
+              >
+                {celeb.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FilePage({
   params,
 }: {
@@ -76,11 +139,29 @@ export default function FilePage({
   const fileId = getFileId(filePath);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { getAdjacentFile } = useFiles();
   
-  // Get adjacent file paths from context
-  const prevPath = getAdjacentFile(filePath, -1);
-  const nextPath = getAdjacentFile(filePath, 1);
+  // Get filter params for navigation
+  const collectionFilter = searchParams.get("collection") ?? "All";
+  const celebrityFilter = searchParams.get("celebrity") ?? "All";
+  const filters = useMemo(() => ({ 
+    collection: collectionFilter, 
+    celebrity: celebrityFilter 
+  }), [collectionFilter, celebrityFilter]);
+  
+  // Get adjacent file paths from context, respecting filters
+  const prevPath = getAdjacentFile(filePath, -1, filters);
+  const nextPath = getAdjacentFile(filePath, 1, filters);
+  
+  // Build query string to preserve filters in navigation
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (collectionFilter !== "All") params.set("collection", collectionFilter);
+    if (celebrityFilter !== "All") params.set("celebrity", celebrityFilter);
+    const str = params.toString();
+    return str ? `?${str}` : "";
+  }, [collectionFilter, celebrityFilter]);
 
   const fileUrl = `${WORKER_URL}/${filePath}`;
 
@@ -96,12 +177,12 @@ export default function FilePage({
       }
 
       if (e.key === "ArrowLeft" && prevPath) {
-        router.push(`/file/${encodeURIComponent(prevPath)}`);
+        router.push(`/file/${encodeURIComponent(prevPath)}${queryString}`);
       } else if (e.key === "ArrowRight" && nextPath) {
-        router.push(`/file/${encodeURIComponent(nextPath)}`);
+        router.push(`/file/${encodeURIComponent(nextPath)}${queryString}`);
       }
     },
-    [prevPath, nextPath, router]
+    [prevPath, nextPath, router, queryString]
   );
 
   useEffect(() => {
@@ -233,7 +314,7 @@ export default function FilePage({
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link
-              href="/"
+              href={`/${queryString}`}
               className="text-zinc-400 hover:text-white transition-colors flex-shrink-0"
             >
               <svg
@@ -262,7 +343,7 @@ export default function FilePage({
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             {prevPath && (
               <Link
-                href={`/file/${encodeURIComponent(prevPath)}`}
+                href={`/file/${encodeURIComponent(prevPath)}${queryString}`}
                 className="p-1.5 sm:px-3 sm:py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors"
                 aria-label="Previous file"
               >
@@ -284,7 +365,7 @@ export default function FilePage({
             )}
             {nextPath && (
               <Link
-                href={`/file/${encodeURIComponent(nextPath)}`}
+                href={`/file/${encodeURIComponent(nextPath)}${queryString}`}
                 className="p-1.5 sm:px-3 sm:py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors"
                 aria-label="Next file"
               >
@@ -339,18 +420,12 @@ export default function FilePage({
 
         <div className="max-w-4xl mx-auto space-y-4">
           {pages.map((dataUrl, index) => (
-            <div
+            <PageWithCelebrities
               key={index}
-              className="bg-white rounded-lg shadow-lg overflow-hidden"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={dataUrl}
-                alt={`Page ${index + 1}`}
-                className="w-full h-auto"
-                style={{ maxWidth: "100%" }}
-              />
-            </div>
+              dataUrl={dataUrl}
+              pageNumber={index + 1}
+              filePath={filePath}
+            />
           ))}
         </div>
 

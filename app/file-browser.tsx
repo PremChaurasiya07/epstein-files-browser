@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQueryState } from "nuqs";
 import { FileItem } from "@/lib/cache";
 import {
@@ -62,10 +62,10 @@ function Thumbnail({ fileKey }: { fileKey: string }) {
 }
 
 // File card component
-function FileCard({ file }: { file: FileItem }) {
+function FileCard({ file, queryString }: { file: FileItem; queryString: string }) {
   return (
     <a
-      href={`/file/${encodeURIComponent(file.key)}`}
+      href={`/file/${encodeURIComponent(file.key)}${queryString}`}
       className="group bg-zinc-900 border border-zinc-800 rounded-lg p-3 hover:border-zinc-600 hover:bg-zinc-800/50 transition-all"
     >
       <div className="mb-3 group-hover:opacity-90 transition-opacity">
@@ -147,6 +147,15 @@ export function FileBrowser() {
   }, [collectionFilter, celebrityFilter, initialFiles, fetchFilesByKeys]);
 
   const filteredFiles = files;
+
+  // Build query string to preserve filters in file links
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (collectionFilter !== "All") params.set("collection", collectionFilter);
+    if (celebrityFilter !== "All") params.set("celebrity", celebrityFilter);
+    const str = params.toString();
+    return str ? `?${str}` : "";
+  }, [collectionFilter, celebrityFilter]);
 
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100">
@@ -250,7 +259,7 @@ export function FileBrowser() {
       <div className="max-w-7xl mx-auto px-4 py-6 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filteredFiles.map((file) => (
-            <FileCard key={file.key} file={file} />
+            <FileCard key={file.key} file={file} queryString={queryString} />
           ))}
         </div>
 

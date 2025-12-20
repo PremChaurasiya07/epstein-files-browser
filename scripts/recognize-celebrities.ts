@@ -4,7 +4,10 @@ import {
 } from "@aws-sdk/client-rekognition";
 import * as fs from "fs";
 import * as path from "path";
-import { execSync } from "child_process";
+import { execSync, exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 // Configurable concurrency - AWS Rekognition default limit is 5 TPS
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || "10");
@@ -100,9 +103,8 @@ async function processPage(task: PageTask): Promise<PageResult> {
   const tempFile = `/tmp/pdf-page-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
 
   try {
-    execSync(
-      `pdftoppm -png -r 100 -f ${page} -l ${page} -singlefile "${pdfPath}" "${tempFile.replace(".png", "")}"`,
-      { stdio: "pipe" }
+    await execAsync(
+      `pdftoppm -png -r 100 -f ${page} -l ${page} -singlefile "${pdfPath}" "${tempFile.replace(".png", "")}"`
     );
 
     const imageBuffer = fs.readFileSync(tempFile);

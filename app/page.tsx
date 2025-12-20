@@ -40,10 +40,9 @@ function getFileId(key: string): string {
   return match ? match[0] : key;
 }
 
-// Thumbnail component - loads precomputed thumbnail from R2
-function PdfThumbnail({ fileKey }: { fileKey: string }) {
+// Thumbnail component - loads thumbnail from R2
+function Thumbnail({ fileKey }: { fileKey: string }) {
   const [error, setError] = useState(false);
-  // Convert PDF path to thumbnail path: VOL00001/IMAGES/0001/EFTA00000001.pdf -> thumbnails/VOL00001/IMAGES/0001/EFTA00000001.jpg
   const thumbnailUrl = `${WORKER_URL}/thumbnails/${fileKey.replace(".pdf", ".jpg")}`;
 
   if (error) {
@@ -65,7 +64,7 @@ function PdfThumbnail({ fileKey }: { fileKey: string }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={thumbnailUrl}
-        alt="PDF thumbnail"
+        alt="Document thumbnail"
         className="w-full h-full object-cover object-top"
         loading="lazy"
         onError={() => setError(true)}
@@ -82,7 +81,7 @@ function FileCard({ file }: { file: FileItem }) {
       className="group bg-zinc-900 border border-zinc-800 rounded-lg p-3 hover:border-zinc-600 hover:bg-zinc-800/50 transition-all"
     >
       <div className="mb-3 group-hover:opacity-90 transition-opacity">
-        <PdfThumbnail fileKey={file.key} />
+        <Thumbnail fileKey={file.key} />
       </div>
 
       <div className="space-y-1">
@@ -357,7 +356,7 @@ export default function Home() {
             >
               AWS Rekognition
             </a>
-            . It may not be accurate and I have not vetted them. These are limited to results that AWS Rekognition reported with {">"}99% confidence.
+            . It may not be accurate and I have not vetted them. These are limited to results that AWS Rekognition reported with {">"}99% confidence. This list is also still generating, check back soon for it to be complete.
           </div>
         </div>
       )}

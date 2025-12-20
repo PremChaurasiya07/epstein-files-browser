@@ -8,6 +8,7 @@ import {
   getFilesForCelebrity,
 } from "@/lib/celebrity-data";
 import { CelebrityCombobox } from "@/components/celebrity-combobox";
+import { CelebrityDisclaimer } from "@/components/celebrity-disclaimer";
 import { useFiles } from "@/lib/files-context";
 
 const WORKER_URL =
@@ -102,7 +103,7 @@ export function FileBrowser() {
   const celebrities = getCelebritiesAboveConfidence(99);
 
   // Fetch files by specific keys (for celebrity filter)
-  const fetchFilesByKeys = useCallback(async (keys: string[]) => {
+  const fetchFilesByKeys = useCallback(async (keys: string[], signal?: AbortSignal) => {
     try {
       setLoading(true);
       setError(null);
@@ -111,21 +112,28 @@ export function FileBrowser() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keys }),
+        signal,
       });
       if (!response.ok) throw new Error("Failed to fetch files");
 
       const data: { files: FileItem[]; totalReturned: number } =
         await response.json();
       setFiles(data.files);
+      setLoading(false);
     } catch (err) {
+      // Don't update state if the request was aborted
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
       setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
       setLoading(false);
     }
   }, []);
 
   // Handle filter changes
   useEffect(() => {
+    const abortController = new AbortController();
+
     // Celebrity filter takes precedence
     if (celebrityFilter !== "All") {
       const celebrityFileKeys = getFilesForCelebrity(celebrityFilter, 99);
@@ -134,8 +142,10 @@ export function FileBrowser() {
         collectionFilter === "All"
           ? celebrityFileKeys
           : celebrityFileKeys.filter((key) => key.startsWith(collectionFilter));
-      fetchFilesByKeys(filteredKeys);
-      return;
+      fetchFilesByKeys(filteredKeys, abortController.signal);
+      return () => {
+        abortController.abort();
+      };
     }
 
     // No celebrity filter - filter from initial files
@@ -144,6 +154,10 @@ export function FileBrowser() {
     } else {
       setFiles(initialFiles.filter((f) => f.key.startsWith(collectionFilter)));
     }
+
+    return () => {
+      abortController.abort();
+    };
   }, [collectionFilter, celebrityFilter, initialFiles, fetchFilesByKeys]);
 
   const filteredFiles = files;
@@ -230,20 +244,12 @@ export function FileBrowser() {
       {/* Celebrity Detection Disclaimer */}
       {celebrityFilter !== "All" && (
         <div className="max-w-7xl mx-auto px-4 pt-4">
-          <div className="bg-amber-900/30 border border-amber-700/50 text-amber-200 px-4 py-3 rounded-lg text-sm">
-            Celebrity detection is done via{" "}
-            <a
-              href="https://aws.amazon.com/rekognition/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-amber-100"
-            >
-              AWS Rekognition
-            </a>
-            . It may not be accurate and I have not vetted them. These are
-            limited to results that AWS Rekognition reported with {">"}99%
-            confidence. This list is also still generating, check back soon for
-            it to be complete.
+          <div className="bg-amber-900/30 border border-amber-700/50 text-amber-200 px-4 py-3 rounded-lg">
+            <CelebrityDisclaimer className="text-amber-200 [&_a]:hover:text-amber-100" />
+            <p className="text-sm mt-2">
+              These are limited to results that AWS Rekognition reported with {">"}99%
+              confidence.
+            </p>
           </div>
         </div>
       )}

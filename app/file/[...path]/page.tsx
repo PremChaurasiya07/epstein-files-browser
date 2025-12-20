@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getPdfPages, setPdfPages } from "@/lib/cache";
 import { useFiles } from "@/lib/files-context";
 import { CELEBRITY_DATA } from "@/lib/celebrity-data";
+import { CelebrityDisclaimer } from "@/components/celebrity-disclaimer";
 
 const WORKER_URL = process.env.NODE_ENV === "development" 
   ? "http://localhost:8787" 
@@ -112,7 +113,7 @@ function PageWithCelebrities({
       {celebrities.length > 0 && (
         <div className="bg-zinc-900 border-t border-zinc-700 px-4 py-3">
           <p className="text-sm text-zinc-400 mb-2">In this photo:</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             {celebrities.map((celeb, idx) => (
               <Link
                 key={idx}
@@ -123,6 +124,7 @@ function PageWithCelebrities({
               </Link>
             ))}
           </div>
+          <CelebrityDisclaimer />
         </div>
       )}
     </div>

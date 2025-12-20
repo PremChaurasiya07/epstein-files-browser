@@ -131,6 +131,7 @@ function PageWithCelebrities({
             .map((celeb, idx) => (
               <Link
                 key={idx}
+                prefetch={false}
                 href={`/?celebrity=${encodeURIComponent(celeb.name)}`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-card border border-border text-foreground hover:bg-accent hover:border-primary/30 transition-all duration-200"
               >
@@ -331,6 +332,7 @@ export default function FilePage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <Link
+              prefetch={false}
               href={`/${queryString}`}
               className="p-2 rounded-xl bg-secondary hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-200 flex-shrink-0"
               aria-label="Back to file list"
@@ -371,6 +373,7 @@ export default function FilePage({
           <div className="flex items-center gap-2 flex-shrink-0">
             {prevPath && (
               <Link
+                prefetch={false}
                 href={`/file/${encodeURIComponent(prevPath)}${queryString}`}
                 className="p-2 sm:px-4 sm:py-2 bg-secondary hover:bg-accent rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
                 aria-label="Previous file"
@@ -393,6 +396,7 @@ export default function FilePage({
             )}
             {nextPath && (
               <Link
+                prefetch={false}
                 href={`/file/${encodeURIComponent(nextPath)}${queryString}`}
                 className="p-2 sm:px-4 sm:py-2 bg-secondary hover:bg-accent rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
                 aria-label="Next file"
@@ -483,6 +487,7 @@ export default function FilePage({
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-2 py-2 bg-card/90 backdrop-blur-sm border border-border rounded-full shadow-lg">
         {prevPath ? (
           <Link
+            prefetch={false}
             href={`/file/${encodeURIComponent(prevPath)}${queryString}`}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
           >
@@ -498,6 +503,7 @@ export default function FilePage({
         <div className="w-px h-4 bg-border"></div>
         {nextPath ? (
           <Link
+            prefetch={false}
             href={`/file/${encodeURIComponent(nextPath)}${queryString}`}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
           >

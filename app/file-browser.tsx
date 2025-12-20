@@ -95,7 +95,48 @@ function getCelebritiesForPage(filePath: string, pageNumber: number): { name: st
     }
   }
   
-  return celebrities.sort((a, b) => b.confidence - a.confidence);
+  return celebrities.sort((a, b) => b.confidence - a.confidence).filter(celeb => celeb.confidence > 99);
+}
+
+// Prefetch a PDF in the background
+async function prefetchPdf(filePath: string): Promise<void> {
+  if (getPdfPages(filePath)) return;
+  
+  try {
+    const fileUrl = `${WORKER_URL}/${filePath}`;
+    const pdfjsLib = await import("pdfjs-dist");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+    const loadingTask = pdfjsLib.getDocument(fileUrl);
+    const pdf = await loadingTask.promise;
+
+    const renderedPages: string[] = [];
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const scale = 2;
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d")!;
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({
+        canvasContext: context,
+        viewport,
+        canvas,
+      }).promise;
+
+      renderedPages.push(canvas.toDataURL("image/png"));
+    }
+
+    if (renderedPages.length > 0) {
+      setPdfPages(filePath, renderedPages);
+    }
+  } catch {
+    // Silently fail prefetch
+  }
 }
 
 // Modal component for viewing files
@@ -106,7 +147,8 @@ function FileModal({
   onNext,
   hasPrev,
   hasNext,
-  queryString
+  queryString,
+  nextFile
 }: { 
   file: FileItem; 
   onClose: () => void;
@@ -115,11 +157,11 @@ function FileModal({
   hasPrev: boolean;
   hasNext: boolean;
   queryString: string;
+  nextFile: FileItem | null;
 }) {
   const [pages, setPages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [totalPages, setTotalPages] = useState(0);
   
   const filePath = file.key;
   const fileId = getFileId(filePath);
@@ -154,7 +196,6 @@ function FileModal({
     
     if (cached && cached.length > 0) {
       setPages(cached);
-      setTotalPages(cached.length);
       setLoading(false);
       return;
     }
@@ -162,7 +203,6 @@ function FileModal({
     setPages([]);
     setError(null);
     setLoading(true);
-    setTotalPages(0);
 
     let cancelled = false;
 
@@ -175,8 +215,6 @@ function FileModal({
         const pdf = await loadingTask.promise;
 
         if (cancelled) return;
-
-        setTotalPages(pdf.numPages);
 
         const renderedPages: string[] = [];
 
@@ -224,6 +262,13 @@ function FileModal({
       cancelled = true;
     };
   }, [fileUrl, filePath]);
+  
+  // Prefetch next PDF
+  useEffect(() => {
+    if (!loading && nextFile) {
+      prefetchPdf(nextFile.key);
+    }
+  }, [loading, nextFile]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -248,22 +293,7 @@ function FileModal({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <div className="min-w-0">
-                <h1 className="text-base sm:text-lg font-mono font-semibold text-foreground truncate">{fileId}</h1>
-                {totalPages > 0 && (
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <div className="h-1.5 flex-1 max-w-[120px] bg-secondary rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary rounded-full"
-                        style={{ width: `${(pages.length / totalPages) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground flex-shrink-0">
-                      {pages.length}/{totalPages}
-                    </span>
-                  </div>
-                )}
-              </div>
+              <h1 className="text-base sm:text-lg font-mono font-semibold text-foreground truncate">{fileId}</h1>
             </div>
 
             {/* Actions */}
@@ -357,11 +387,7 @@ function FileModal({
                 <div className="w-12 h-12 rounded-full border-2 border-secondary"></div>
                 <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
               </div>
-              <p className="text-foreground font-medium">
-                {pages.length > 0
-                  ? `Rendering page ${pages.length + 1} of ${totalPages}`
-                  : "Loading PDF..."}
-              </p>
+              <p className="text-foreground font-medium">Loading PDF...</p>
             </div>
           )}
         </div>
@@ -582,15 +608,6 @@ export function FileBrowser() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-card/50 py-6 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Built with transparency in mind. <a href="https://github.com/RhysSullivan/epstein-files-browser" className="text-primary hover:underline">View source code</a>
-          </p>
-        </div>
-      </footer>
-      
       {/* File Modal */}
       {selectedFile && (
         <FileModal
@@ -601,6 +618,7 @@ export function FileBrowser() {
           hasPrev={hasPrev}
           hasNext={hasNext}
           queryString={queryString}
+          nextFile={hasNext && selectedFileIndex !== null ? filteredFiles[selectedFileIndex + 1] : null}
         />
       )}
     </div>

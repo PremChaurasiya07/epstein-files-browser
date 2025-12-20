@@ -7,11 +7,16 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname.slice(1); // Remove leading slash
 
+    const cacheHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "public, max-age=31536000, immutable",
+    };
+
     // Handle CORS preflight
     if (request.method === "OPTIONS") {
       return new Response(null, {
         headers: {
-          "Access-Control-Allow-Origin": "*",
+          ...cacheHeaders,
           "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type",
         },
@@ -49,9 +54,8 @@ export default {
         }),
         {
           headers: {
+            ...cacheHeaders,
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "public, max-age=60",
           },
         }
       );
@@ -95,9 +99,8 @@ export default {
         }),
         {
           headers: {
+            ...cacheHeaders,
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "public, max-age=3600",
           },
         }
       );
@@ -162,9 +165,8 @@ export default {
         }),
         {
           headers: {
+            ...cacheHeaders,
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "public, max-age=60",
           },
         }
       );
@@ -176,17 +178,13 @@ export default {
     if (!object) {
       return new Response("Not Found", { 
         status: 404,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-        },
+        headers: cacheHeaders,
       });
     }
 
-    const headers = new Headers();
+    const headers = new Headers(cacheHeaders);
     headers.set("Content-Type", object.httpMetadata?.contentType || "application/pdf");
     headers.set("Content-Length", object.size.toString());
-    headers.set("Cache-Control", "public, max-age=31536000, immutable");
-    headers.set("Access-Control-Allow-Origin", "*");
     headers.set("Content-Disposition", `inline; filename="${path.split("/").pop()}"`);
 
     return new Response(object.body, { headers });

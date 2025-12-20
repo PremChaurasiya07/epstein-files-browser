@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,46 +45,50 @@ export function CelebrityCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[250px] justify-between bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700 hover:text-white"
+          className="w-[220px] sm:w-[260px] justify-between bg-secondary border-border text-foreground hover:bg-accent hover:text-foreground rounded-xl h-auto py-2.5 px-4 transition-all duration-200"
         >
-          {value === "All" ? (
-            "All People"
-          ) : selectedCelebrity ? (
-            <span className="truncate">
-              {selectedCelebrity.name} ({selectedCelebrity.count})
-            </span>
-          ) : (
-            "Select person..."
-          )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <div className="flex items-center gap-2 min-w-0">
+            <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            {value === "All" ? (
+              <span className="text-sm font-medium">All People</span>
+            ) : selectedCelebrity ? (
+              <span className="truncate text-sm font-medium">
+                {selectedCelebrity.name}
+                <span className="text-muted-foreground ml-1">({selectedCelebrity.count})</span>
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">Select person...</span>
+            )}
+          </div>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[250px] p-0 bg-zinc-800 border-zinc-700">
-        <Command className="bg-zinc-800">
+      <PopoverContent className="w-[280px] p-0 bg-card border-border rounded-xl shadow-xl" align="start">
+        <Command className="bg-transparent">
           <CommandInput
             placeholder="Search people..."
-            className="text-white placeholder:text-zinc-500"
+            className="text-foreground placeholder:text-muted-foreground border-b border-border"
           />
-          <CommandList>
-            <CommandEmpty className="text-zinc-400">
+          <CommandList className="max-h-[300px]">
+            <CommandEmpty className="text-muted-foreground py-6 text-center text-sm">
               No person found.
             </CommandEmpty>
-            <CommandGroup>
+            <CommandGroup className="p-1.5">
               <CommandItem
                 value="All"
                 onSelect={() => {
                   onValueChange("All");
                   setOpen(false);
                 }}
-                className="text-white hover:bg-zinc-700 data-[selected=true]:bg-zinc-700"
+                className="text-foreground hover:bg-accent data-[selected=true]:bg-accent rounded-lg px-3 py-2.5 cursor-pointer"
               >
                 <Check
                   className={cn(
-                    "mr-2 h-4 w-4",
+                    "mr-2.5 h-4 w-4 text-primary",
                     value === "All" ? "opacity-100" : "opacity-0"
                   )}
                 />
-                All People
+                <span className="font-medium">All People</span>
               </CommandItem>
               {celebrities.map((celebrity) => (
                 <CommandItem
@@ -94,17 +98,17 @@ export function CelebrityCombobox({
                     onValueChange(celebrity.name);
                     setOpen(false);
                   }}
-                  className="text-white hover:bg-zinc-700 data-[selected=true]:bg-zinc-700"
+                  className="text-foreground hover:bg-accent data-[selected=true]:bg-accent rounded-lg px-3 py-2.5 cursor-pointer"
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
+                      "mr-2.5 h-4 w-4 text-primary",
                       value === celebrity.name ? "opacity-100" : "opacity-0"
                     )}
                   />
                   <span className="truncate flex-1">{celebrity.name}</span>
-                  <span className="text-zinc-400 text-xs ml-2">
-                    ({celebrity.count})
+                  <span className="text-muted-foreground text-xs ml-2 bg-secondary px-2 py-0.5 rounded-md">
+                    {celebrity.count}
                   </span>
                 </CommandItem>
               ))}

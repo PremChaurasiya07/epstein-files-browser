@@ -1,26 +1,26 @@
 export function CelebrityDisclaimer({ className = "" }: { className?: string }) {
   return (
-    <div className={`text-sm text-zinc-400 ${className}`}>
+    <div className={`text-xs text-muted-foreground leading-relaxed ${className}`}>
       <p>
-        Celebrity detection is done via{" "}
+        Detection powered by{" "}
         <a
           href="https://aws.amazon.com/rekognition/"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline hover:text-zinc-300"
+          className="text-primary/80 hover:text-primary underline-offset-2 hover:underline transition-colors"
         >
           AWS Rekognition
         </a>
-        . It may not be accurate and I have not vetted them.{" "}
+        . Results may not be accurate.{" "}
         <a
           href="https://github.com/RhysSullivan/epstein-files-browser"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline hover:text-zinc-300"
+          className="text-primary/80 hover:text-primary underline-offset-2 hover:underline transition-colors"
         >
-          Source is available
-        </a>{" "}
-        for how this works.
+          View source
+        </a>
+        .
       </p>
     </div>
   );

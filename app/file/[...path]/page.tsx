@@ -86,7 +86,7 @@ function getCelebritiesForPage(filePath: string, pageNumber: number): { name: st
   }
   
   // Sort by confidence (highest first)
-  return celebrities.sort((a, b) => b.confidence - a.confidence);
+  return celebrities.sort((a, b) => b.confidence - a.confidence).filter(celeb => celeb.confidence > 99);
 }
 
 // Component to display a page with its celebrity info
@@ -102,25 +102,40 @@ function PageWithCelebrities({
   const celebrities = useMemo(() => getCelebritiesForPage(filePath, pageNumber), [filePath, pageNumber]);
   
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={dataUrl}
-        alt={`Page ${pageNumber}`}
-        className="w-full h-auto md:max-h-[70vh] md:w-auto md:mx-auto"
-        style={{ maxWidth: "100%" }}
-      />
+    <div className="bg-card rounded-2xl shadow-xl overflow-hidden border border-border">
+      <div className="relative">
+        {/* Page number badge */}
+        <div className="absolute top-3 left-3 px-2.5 py-1 bg-background/80 backdrop-blur-sm rounded-lg text-xs font-medium text-muted-foreground border border-border">
+          Page {pageNumber}
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={dataUrl}
+          alt={`Page ${pageNumber}`}
+          className="w-full h-auto md:max-h-[75vh] md:w-auto md:mx-auto"
+          style={{ maxWidth: "100%" }}
+        />
+      </div>
       {celebrities.length > 0 && (
-        <div className="bg-zinc-900 border-t border-zinc-700 px-4 py-3">
-          <p className="text-sm text-zinc-400 mb-2">In this photo:</p>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {celebrities.map((celeb, idx) => (
+        <div className="bg-secondary/50 border-t border-border px-5 py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <svg className="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-foreground">Detected in this image:</p>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {celebrities
+            .map((celeb, idx) => (
               <Link
                 key={idx}
                 href={`/?celebrity=${encodeURIComponent(celeb.name)}`}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-card border border-border text-foreground hover:bg-accent hover:border-primary/30 transition-all duration-200"
               >
-                {celeb.name}
+                <span>{celeb.name}</span>
+                <span className="text-xs text-muted-foreground">({Math.round(celeb.confidence)}%)</span>
               </Link>
             ))}
           </div>
@@ -310,17 +325,18 @@ export default function FilePage({
   }, [loading, nextPath, prevPath]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
-      <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+      <header className="border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <Link
               href={`/${queryString}`}
-              className="text-zinc-400 hover:text-white transition-colors flex-shrink-0"
+              className="p-2 rounded-xl bg-secondary hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-200 flex-shrink-0"
+              aria-label="Back to file list"
             >
               <svg
-                className="w-5 h-5 sm:w-6 sm:h-6"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -333,24 +349,34 @@ export default function FilePage({
                 />
               </svg>
             </Link>
-            <h1 className="text-sm sm:text-lg font-mono text-white truncate">{fileId}</h1>
-            {totalPages > 0 && (
-              <span className="text-xs sm:text-sm text-zinc-500 hidden sm:inline flex-shrink-0">
-                {pages.length} / {totalPages} pages
-              </span>
-            )}
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-mono font-semibold text-foreground truncate">{fileId}</h1>
+              {totalPages > 0 && (
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className="h-1.5 flex-1 max-w-[120px] bg-secondary rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary rounded-full transition-all duration-500"
+                      style={{ width: `${(pages.length / totalPages) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-muted-foreground flex-shrink-0">
+                    {pages.length}/{totalPages}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Navigation */}
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {prevPath && (
               <Link
                 href={`/file/${encodeURIComponent(prevPath)}${queryString}`}
-                className="p-1.5 sm:px-3 sm:py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors"
+                className="p-2 sm:px-4 sm:py-2 bg-secondary hover:bg-accent rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
                 aria-label="Previous file"
               >
                 <svg
-                  className="w-5 h-5 sm:hidden"
+                  className="w-4 h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -362,17 +388,18 @@ export default function FilePage({
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
-                <span className="hidden sm:inline">Previous</span>
+                <span className="hidden sm:inline">Prev</span>
               </Link>
             )}
             {nextPath && (
               <Link
                 href={`/file/${encodeURIComponent(nextPath)}${queryString}`}
-                className="p-1.5 sm:px-3 sm:py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors"
+                className="p-2 sm:px-4 sm:py-2 bg-secondary hover:bg-accent rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
                 aria-label="Next file"
               >
+                <span className="hidden sm:inline">Next</span>
                 <svg
-                  className="w-5 h-5 sm:hidden"
+                  className="w-4 h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -384,17 +411,16 @@ export default function FilePage({
                     d="M9 5l7 7-7 7"
                   />
                 </svg>
-                <span className="hidden sm:inline">Next</span>
               </Link>
             )}
             <a
               href={fileUrl}
               download
-              className="p-1.5 sm:px-3 sm:py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors"
+              className="p-2 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-primary/20"
               aria-label="Download PDF"
             >
               <svg
-                className="w-5 h-5 sm:hidden"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -406,21 +432,27 @@ export default function FilePage({
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                 />
               </svg>
-              <span className="hidden sm:inline">Download PDF</span>
+              <span className="hidden sm:inline">Download</span>
             </a>
           </div>
         </div>
       </header>
 
       {/* PDF Pages */}
-      <main ref={containerRef} className="flex-1 overflow-auto p-4">
+      <main ref={containerRef} className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-24">
         {error && (
-          <div className="max-w-3xl mx-auto bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg mb-6">
-            {error}
+          <div className="max-w-3xl mx-auto bg-destructive/10 border border-destructive/20 text-destructive px-5 py-4 rounded-2xl mb-6 flex items-start gap-3">
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="font-medium">Error loading PDF</p>
+              <p className="text-sm text-destructive/80 mt-0.5">{error}</p>
+            </div>
           </div>
         )}
 
-        <div className="max-w-4xl mx-auto space-y-4">
+        <div className="max-w-4xl mx-auto space-y-6">
           {pages.map((dataUrl, index) => (
             <PageWithCelebrities
               key={index}
@@ -433,16 +465,52 @@ export default function FilePage({
 
         {/* Loading State */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-zinc-600 border-t-white"></div>
-            <p className="text-zinc-500">
+          <div className="flex flex-col items-center justify-center py-16 gap-5">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full border-2 border-secondary"></div>
+              <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+            </div>
+            <p className="text-foreground font-medium">
               {pages.length > 0
-                ? `Rendering page ${pages.length + 1} of ${totalPages}...`
+                ? `Rendering page ${pages.length + 1} of ${totalPages}`
                 : "Loading PDF..."}
             </p>
           </div>
         )}
       </main>
+
+      {/* Navigation bar */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-2 py-2 bg-card/90 backdrop-blur-sm border border-border rounded-full shadow-lg">
+        {prevPath ? (
+          <Link
+            href={`/file/${encodeURIComponent(prevPath)}${queryString}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
+          >
+            <kbd className="px-2 py-0.5 bg-secondary rounded-md font-mono text-xs text-foreground">←</kbd>
+            <span>Prev</span>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed">
+            <kbd className="px-2 py-0.5 bg-secondary/50 rounded-md font-mono text-xs text-muted-foreground/50">←</kbd>
+            <span>Prev</span>
+          </div>
+        )}
+        <div className="w-px h-4 bg-border"></div>
+        {nextPath ? (
+          <Link
+            href={`/file/${encodeURIComponent(nextPath)}${queryString}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
+          >
+            <span>Next</span>
+            <kbd className="px-2 py-0.5 bg-secondary rounded-md font-mono text-xs text-foreground">→</kbd>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed">
+            <span>Next</span>
+            <kbd className="px-2 py-0.5 bg-secondary/50 rounded-md font-mono text-xs text-muted-foreground/50">→</kbd>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

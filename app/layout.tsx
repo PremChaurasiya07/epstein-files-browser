@@ -4,6 +4,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Analytics } from "@vercel/analytics/next";
 import { FilesProvider } from "@/lib/files-context";
 import { FileItem } from "@/lib/cache";
+import { Header } from "@/components/header";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -54,6 +55,7 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <FilesProvider files={files}>
+          <Header />
           <NuqsAdapter>{children}</NuqsAdapter>
         </FilesProvider>
         <Analytics />
